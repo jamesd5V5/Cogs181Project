@@ -18,11 +18,11 @@ import sklearn.preprocessing
 data_path = os.getcwd()
 print(list(os.listdir(f'{data_path}/genres_original/')))
 
-#file_path = os.path.join(data_path, "genres_original", "disco", "disco.00022.wav")
-#y, sr = librosa.load(file_path)
+file_path = os.path.join(data_path, "genres_original", "disco", "disco.00022.wav")
+y, sr = librosa.load(file_path)
 
-#audio_file, _ = librosa.effects.trim(y)
-#print('Audio File shape:', np.shape(audio_file))
+audio_file, _ = librosa.effects.trim(y)
+print('Audio File shape:', np.shape(audio_file))
 
 #plt.figure(figsize= (16,6))
 #librosa.display.waveshow(y = audio_file, sr = sr)
@@ -42,17 +42,19 @@ y, sr = librosa.load(rock_path)
 y, _ = librosa.effects.trim(y)
 S = librosa.feature.melspectrogram(y=y, sr=sr)
 S_DB = librosa.amplitude_to_db(S, ref=np.max)
-#plt.figure(figsize=(16,6))
-#librosa.display.specshow(S_DB, sr=sr,hop_length=hop_length, x_axis='time',y_axis='log',cmap='cool')
-#plt.colorbar()
+plt.figure(figsize=(16,6))
+librosa.display.specshow(S_DB, sr=sr,hop_length=hop_length, x_axis='time',y_axis='log',cmap='magma')
+plt.colorbar()
+plt.title("Mel Spectrogram", fontsize = 23)
+plt.savefig("MelSpectorgam")
 
 zero_crossings = librosa.zero_crossings(y, pad=False)
 print(sum(zero_crossings))
 
 y_harm, y_perc = librosa.effects.hpss(y)
-#plt.figure(figsize = (16, 6))
-#plt.plot(y_harm, color = '#A300F9');
-#plt.plot(y_perc, color = '#FFB100');
+plt.figure(figsize = (16, 6))
+plt.plot(y_harm, color = '#A300F9');
+plt.plot(y_perc, color = '#FFB100');
 
 tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
 print(tempo)
@@ -66,47 +68,58 @@ frames = range(len(spectral_centroids))
 t = librosa.frames_to_time(frames)
 print('t:', t)
 
-#plt.figure(figsize=(16,6))
-#librosa.display.waveshow(y=y, sr=sr, alpha=0.4, color = '#A300F9')
-#plt.plot(t, sklearnNormalize(spectral_centroids), color='#FFB100')
+plt.figure(figsize=(16,6))
+librosa.display.waveshow(y=y, sr=sr, alpha=0.4, color = '#A300F9')
+plt.plot(t, sklearnNormalize(spectral_centroids), color='#FFB100')
 
 spectral_rolloff = librosa.feature.spectral_rolloff(y=y,sr=sr)[0]
-#plt.figure(figsize=(16,6))
-##librosa.display.waveshow(y=y, sr=sr, alpha=0.4, color = '#A300F9')
-#plt.plot(t, sklearnNormalize(spectral_rolloff), color='#FFB100')
+plt.figure(figsize=(16,6))
+librosa.display.waveshow(y=y, sr=sr, alpha=0.4, color = '#A300F9')
+plt.plot(t, sklearnNormalize(spectral_rolloff), color='#FFB100')
 
 mfccs = librosa.feature.mfcc(y=y,sr=sr)
 mfccs = sklearn.preprocessing.scale(mfccs, axis=1)
 print('Mean, Varaince: ', mfccs.mean(), ', ', mfccs.var())
-#plt.figure(figsize=(16,6))
-#librosa.display.specshow(mfccs, sr=sr, x_axis='time', cmap = 'cool')
+plt.figure(figsize=(16,6))
+librosa.display.specshow(mfccs, sr=sr, x_axis='time', cmap = 'cool')
 
 
 hop_length = 5000
 chromagram = librosa.feature.chroma_stft(y=y, sr=sr, hop_length=hop_length)
-#plt.figure(figsize=(10,5))
-#librosa.display.specshow(chromagram, x_axis='time', y_axis='chroma', hop_length=hop_length, cmap='coolwarm')
+plt.figure(figsize=(10,5))
+librosa.display.specshow(chromagram, x_axis='time', y_axis='chroma', hop_length=hop_length, cmap='coolwarm')
 
-#The csv file contains all the audio features above for all audio clips
+
+#plt.show()
+
+# Load the dataset
 data = pd.read_csv(f'{data_path}/features_30_sec.csv')
-print(data.head())
 
+# Select columns containing 'mean'
 spike_cols = [col for col in data.columns if 'mean' in col]
 corr = data[spike_cols].corr()
 
-mask = np.triu(np.ones_like(corr, dtype=np.bool_))
-f,ax = plt.subplots(figsize=(10,5))
-cmap = sns.diverging_palette(0,25,as_cmap=True, s=90, l=45, n=5)
-sns.heatmap(corr, mask=mask, cmap=cmap,vmax=0.3,center=0,square=True,linewidths=0.5,cbar_kws={"shrink": 0.5})
-plt.xticks(fontsize=10)
-plt.yticks(fontsize=10)
-plt.savefig("Corr Heatmap.jpg")
+# Generate a mask for the upper triangle
+mask = np.triu(np.ones_like(corr, dtype=bool))
 
-x = data[["label", "tempo"]]
-f,ax = plt.subplots(figsize=(10,5))
-sns.boxplot(x="label", y="tempo", data=x, palette='husl')
-plt.xlabel("Genre")
-plt.ylabel("BPM")
-plt.savefig("BPM Boxplot.jpg")
+# Set up the matplotlib figure
+f, ax = plt.subplots(figsize=(18, 18))
 
-#Hello
+# Improved colormap with more vibrant colors
+cmap = sns.color_palette("coolwarm", as_cmap=True)
+
+# Draw the heatmap with annotations for better clarity
+sns.heatmap(corr, mask=mask, cmap=cmap, annot=True, fmt='.2f',
+            vmax=1, vmin=-1, center=0, square=True, linewidths=0.7,
+            cbar_kws={"shrink": 0.6, "orientation": "vertical"})
+
+# Customizing the title and labels
+plt.title('Mean Feature Correlation Heatmap', fontsize=28, fontweight='bold', pad=20)
+plt.xticks(fontsize=12, rotation=45, ha='right')
+plt.yticks(fontsize=12)
+
+# Enhance grid visibility
+plt.grid(visible=True, linewidth=0.3)
+
+# Save the heatmap
+plt.savefig("Enhanced_Corr_Heatmap.jpg", dpi=300, bbox_inches='tight')
